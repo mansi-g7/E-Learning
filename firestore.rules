@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Development mode: Allow signed-in users to read and write
+    // In production, implement proper role-based access control
+    
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Default: allow everything for signed-in users during development
+    // This ensures the app works while being developed
+    match /{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}

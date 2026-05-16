@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "251652691269",
+    "project_id": "e-learning-c024a",
+    "storage_bucket": "e-learning-c024a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:251652691269:android:6a5fd5f83f03f0e4a15a2c",
+        "android_client_info": {
+          "package_name": "com.example.elearn_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "251652691269-fm52lvrcesr96t5s101ditma2ju9699i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBj_590Thzf2l3WWN7v9bMq4_QCq6zIzBc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "251652691269-fm52lvrcesr96t5s101ditma2ju9699i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "251652691269-kuo75d6toiidjjjhrbrvq67laqdukus6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.elearnApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:251652691269:android:83f9688e78c47dd8a15a2c",
+        "android_client_info": {
+          "package_name": "com.example.elearning"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "251652691269-9snal119idpn18fkunlka8f11fdsqvc8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.elearning",
+            "certificate_hash": "330bca582ebe83a8364cb1ba4565ebf6fb5acf5a"
+          }
+        },
+        {
+          "client_id": "251652691269-fm52lvrcesr96t5s101ditma2ju9699i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBj_590Thzf2l3WWN7v9bMq4_QCq6zIzBc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "251652691269-fm52lvrcesr96t5s101ditma2ju9699i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "251652691269-kuo75d6toiidjjjhrbrvq67laqdukus6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.elearnApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
