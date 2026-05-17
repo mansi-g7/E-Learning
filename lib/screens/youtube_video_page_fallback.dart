@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../admin/utils/youtube_utils.dart';
 
@@ -18,15 +18,138 @@ class YoutubeVideoPage extends StatefulWidget {
 }
 
 class _YoutubeVideoPageState extends State<YoutubeVideoPage> {
-  bool _launching = false;
-  String? _launchError;
+  WebViewController? _controller;
+  bool _loading = true;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _openVideo();
-    });
+    final watchUrl = buildYoutubeMobileWatchUrl(widget.youtubeUrl);
+    if (watchUrl == null) {
+      _loading = false;
+      _errorText = 'Invalid YouTube URL';
+      return;
+    }
+
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (_) {
+            if (mounted) {
+              setState(() => _loading = true);
+            }
+          },
+          onPageFinished: (_) {
+            if (mounted) {
+              setState(() => _loading = false);
+            }
+            _hideYoutubeChrome();
+          },
+          onWebResourceError: (_) {
+            if (mounted) {
+              setState(() {
+                _loading = false;
+                _errorText = 'Could not open the video inside the app.';
+              });
+            }
+          },
+          onNavigationRequest: (request) {
+            final uri = Uri.tryParse(request.url);
+            if (uri == null) {
+              return NavigationDecision.navigate;
+            }
+
+            final host = uri.host.toLowerCase();
+            if (host.contains('youtube.com') || host.contains('youtu.be')) {
+              return NavigationDecision.navigate;
+            }
+
+            return NavigationDecision.prevent;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(watchUrl));
+  }
+
+  Future<void> _hideYoutubeChrome() async {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+
+    try {
+      await controller.runJavaScript('''
+        (function () {
+          const styleId = 'copilot-youtube-player-only-style';
+          let style = document.getElementById(styleId);
+          if (!style) {
+            style = document.createElement('style');
+            style.id = styleId;
+            document.head.appendChild(style);
+          }
+
+          style.textContent = `
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              overflow: hidden !important;
+              background: #000 !important;
+            }
+
+            body > *:not(#player):not(#player-container):not(#movie_player) {
+              display: none !important;
+            }
+
+            #masthead-container,
+            #header,
+            #below,
+            #secondary,
+            #comments,
+            #related,
+            #meta,
+            #chat,
+            #playlist,
+            #tabs,
+            #chipbar,
+            #menu,
+            ytd-comments,
+            ytd-watch-next-secondary-results-renderer,
+            ytd-engagement-panel-section-list-renderer,
+            ytm-single-column-watch-next-results-renderer,
+            ytm-comments-entry-point-header-renderer,
+            ytm-engagement-panel-section-list-renderer {
+              display: none !important;
+            }
+
+            #player,
+            #player-container,
+            #movie_player {
+              position: fixed !important;
+              inset: 0 !important;
+              width: 100vw !important;
+              height: 100vh !important;
+              z-index: 9999 !important;
+              background: #000 !important;
+            }
+
+            video {
+              object-fit: contain !important;
+            }
+          `;
+
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          document.body.style.overflow = 'hidden';
+        })();
+      ''');
+    } catch (_) {
+      // If the page blocks injection, the video still remains playable.
+    }
   }
 
   @override
@@ -34,101 +157,76 @@ class _YoutubeVideoPageState extends State<YoutubeVideoPage> {
     super.dispose();
   }
 
-  Future<void> _openVideo() async {
-    if (_launching) {
-      return;
-    }
-
-    setState(() {
-      _launching = true;
-      _launchError = null;
-    });
-
-    final normalizedUrl = normalizeYoutubeWatchUrl(widget.youtubeUrl);
-    final uri = Uri.tryParse(normalizedUrl);
-    if (uri == null) {
-      setState(() {
-        _launching = false;
-        _launchError = 'Invalid YouTube link.';
-      });
-      return;
-    }
-
-    try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched && mounted) {
-        setState(() {
-          _launching = false;
-          _launchError = 'Could not open the video on this device.';
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _launching = false;
-          _launchError = 'Could not open the video on this device.';
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final webViewController = _controller;
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF0FF),
-                  borderRadius: BorderRadius.circular(24),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            if (webViewController != null)
+              Positioned.fill(
+                child: WebViewWidget(controller: webViewController),
+              )
+            else
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.play_circle_fill_rounded,
+                        size: 56,
+                        color: Color(0xFF3B53D6),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Invalid YouTube URL',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        widget.youtubeUrl,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(0xFF667085)),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Icon(
-                  Icons.play_circle_fill_rounded,
-                  size: 48,
-                  color: Color(0xFF3B53D6),
+              ),
+            if (_loading) const Center(child: CircularProgressIndicator()),
+            if (_errorText != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 44,
+                        color: Color(0xFF3B53D6),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorText!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 18),
-              Text(
-                _launching ? 'Opening YouTube...' : 'Open video on your phone',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _launchError ??
-                    'This video will open in the YouTube app or browser, which works reliably on mobile.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                onPressed: _openVideo,
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: const Text('Open Video'),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                normalizeYoutubeWatchUrl(widget.youtubeUrl),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

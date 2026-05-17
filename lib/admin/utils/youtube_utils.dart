@@ -56,3 +56,58 @@ String normalizeYoutubeWatchUrl(String input) {
 
   return trimmed;
 }
+
+String? buildYoutubeEmbedUrl(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+
+  final videoId = extractYoutubeVideoId(trimmed);
+  if (videoId != null) {
+    return 'https://www.youtube.com/embed/$videoId?playsinline=1&rel=0';
+  }
+
+  final normalizedUrl = normalizeYoutubeWatchUrl(trimmed);
+  return normalizedUrl.isEmpty ? null : normalizedUrl;
+}
+
+String? buildYoutubeMobileWatchUrl(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+
+  final videoId = extractYoutubeVideoId(trimmed);
+  if (videoId != null) {
+    return 'https://m.youtube.com/watch?v=$videoId&autoplay=1&playsinline=1';
+  }
+
+  final normalizedUrl = normalizeYoutubeWatchUrl(trimmed);
+  if (normalizedUrl.isEmpty) {
+    return null;
+  }
+
+  final uri = Uri.tryParse(normalizedUrl);
+  if (uri == null) {
+    return normalizedUrl;
+  }
+
+  if (uri.host.contains('youtube.com') || uri.host.contains('youtu.be')) {
+    return uri
+        .replace(
+          scheme: 'https',
+          host: 'm.youtube.com',
+          path: '/watch',
+          queryParameters: <String, String>{
+            if (uri.queryParameters['v']?.isNotEmpty ?? false)
+              'v': uri.queryParameters['v']!,
+            'autoplay': '1',
+            'playsinline': '1',
+          },
+        )
+        .toString();
+  }
+
+  return normalizedUrl;
+}
